@@ -66,11 +66,15 @@ func (c *Crawler) index(ctx context.Context, r *t.AnnotatedResource) error {
 		f := &indexTypes.File{
 			Document: makeDocument(r),
 		}
-		err = c.extractor.Extract(ctx, r, f)
-		if errors.Is(err, extractor.ErrFileTooLarge) {
-			// Interpret files which are too large as invalid resources; prevent repeated attempts.
-			span.RecordError(ctx, err)
-			err = fmt.Errorf("%w: %v", t.ErrInvalidResource, err)
+
+		for _, e := range c.extractors {
+			err = e.Extract(ctx, r, f)
+			if errors.Is(err, extractor.ErrFileTooLarge) {
+				// Interpret files which are too large as invalid resources; prevent repeated attempts.
+				span.RecordError(ctx, err)
+				err = fmt.Errorf("%w: %v", t.ErrInvalidResource, err)
+				break
+			}
 		}
 
 		index = c.indexes.Files

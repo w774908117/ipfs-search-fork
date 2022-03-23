@@ -29,8 +29,10 @@ type CrawlerTestSuite struct {
 	c       *Crawler
 	instr   *instr.Instrumentation
 
-	protocol  *protocol.Mock
-	extractor *extractor.Mock
+	protocol *protocol.Mock
+
+	extractor1 *extractor.Mock
+	extractor2 *extractor.Mock
 
 	fileIdx    *index.Mock
 	dirIdx     *index.Mock
@@ -63,13 +65,17 @@ func (s *CrawlerTestSuite) SetupTest() {
 		Hashes:      s.hashQ,
 	}
 	s.protocol = &protocol.Mock{}
-	s.extractor = &extractor.Mock{}
+
+	s.extractor1 = &extractor.Mock{}
+	s.extractor2 = &extractor.Mock{}
+
+	extractors := []extractor.Extractor{s.extractor1}
 
 	s.instr = instr.New()
 
 	s.cfg = DefaultConfig()
 
-	s.c = New(s.cfg, s.indexes, s.queues, s.protocol, s.extractor, s.instr)
+	s.c = New(s.cfg, s.indexes, s.queues, s.protocol, extractors, s.instr)
 }
 
 func (s *CrawlerTestSuite) assertExpectations() {
@@ -81,7 +87,8 @@ func (s *CrawlerTestSuite) assertExpectations() {
 		s.dirQ,
 		s.hashQ,
 		s.protocol,
-		s.extractor,
+		s.extractor1,
+		s.extractor2,
 	)
 }
 
@@ -144,7 +151,7 @@ func (s *CrawlerTestSuite) TestCrawlUndefinedType() {
 		Return(nil).
 		Once()
 
-	s.extractor.
+	s.extractor1.
 		On("Extract", mock.Anything, r, mock.Anything).
 		Return(nil).
 		Once()
@@ -321,7 +328,7 @@ func (s *CrawlerTestSuite) TestCrawlReferencedPartialType() {
 		},
 	}
 
-	s.extractor.
+	s.extractor1.
 		On("Extract", mock.Anything, r, mock.Anything).
 		Return(nil).
 		Once()
@@ -382,7 +389,7 @@ func (s *CrawlerTestSuite) TestCrawlFileType() {
 	// Mock assertions
 	testMetadata := indexTypes.Metadata{"TestField": "TestValue"}
 
-	s.extractor.
+	s.extractor1.
 		On("Extract", mock.Anything, r, mock.Anything).
 		Run(func(args mock.Arguments) {
 			f := args.Get(2).(*indexTypes.File)
@@ -396,6 +403,64 @@ func (s *CrawlerTestSuite) TestCrawlFileType() {
 		On("Index", mock.Anything, r.Resource.ID, mock.MatchedBy(func(f *indexTypes.File) bool {
 			return s.Equal(f.Metadata, testMetadata) &&
 				s.Equal(f.Content, "testContent") &&
+				s.Equal(f.Size, uint64(15))
+		})).
+		Return(nil).
+		Once()
+
+	s.assertNotExists(r.Resource.ID)
+
+	// Crawl
+	err := s.c.Crawl(s.ctx, r)
+
+	// Test result, side effects
+	s.NoError(err)
+	s.assertExpectations()
+}
+
+func (s *CrawlerTestSuite) TestCrawlMultiExtractor() {
+	extractors := []extractor.Extractor{s.extractor1, s.extractor2}
+
+	s.c = New(s.cfg, s.indexes, s.queues, s.protocol, extractors, s.instr)
+
+	// Prepare resource
+	r := &t.AnnotatedResource{
+		Resource: &t.Resource{
+			Protocol: t.IPFSProtocol,
+			ID:       "QmSKboVigcD3AY4kLsob117KJcMHvMUu6vNFqk1PQzYUpp",
+		},
+		Stat: t.Stat{
+			Type: t.FileType,
+			Size: 15,
+		},
+	}
+
+	// Mock assertions
+	testMetadata := indexTypes.Metadata{"TestField": "TestValue"}
+
+	s.extractor1.
+		On("Extract", mock.Anything, r, mock.Anything).
+		Run(func(args mock.Arguments) {
+			f := args.Get(2).(*indexTypes.File)
+			f.Metadata = testMetadata
+		}).
+		Return(nil).
+		Once()
+
+	s.extractor2.
+		On("Extract", mock.Anything, r, mock.Anything).
+		Run(func(args mock.Arguments) {
+			f := args.Get(2).(*indexTypes.File)
+			f.Content = "testContent"
+		}).
+		Return(nil).
+		Once()
+
+	s.fileIdx.
+		On("Index", mock.Anything, r.Resource.ID, mock.MatchedBy(func(f *indexTypes.File) bool {
+			return s.Equal(f.Metadata, testMetadata) &&
+				s.Equal(f.Content, "testContent") &&
+				s.Equal(f.Metadata["TestField"], "TestValue") &&
 				s.Equal(f.Size, uint64(15))
 		})).
 		Return(nil).
@@ -426,7 +491,7 @@ func (s *CrawlerTestSuite) TestCrawlLargeFile() {
 
 	largeFileErr := fmt.Errorf("blabla %w", extractor.ErrFileTooLarge)
 
-	s.extractor.
+	s.extractor1.
 		On("Extract", mock.Anything, r, mock.Anything).
 		Return(largeFileErr).
 		Once()
@@ -493,7 +558,7 @@ func (s *CrawlerTestSuite) TestCrawlReferencedFile() {
 		},
 	}
 
-	s.extractor.
+	s.extractor1.
 		On("Extract", mock.Anything, r, mock.Anything).
 		Return(nil).
 		Once()
@@ -764,7 +829,7 @@ func (s *CrawlerTestSuite) TestCrawlLargeDirectory() {
 	// Override MaxDirSize
 	s.cfg.MaxDirSize = 3
 
-	s.c = New(s.cfg, s.indexes, s.queues, s.protocol, s.extractor, s.instr)
+	s.c = New(s.cfg, s.indexes, s.queues, s.protocol, []extractor.Extractor{s.extractor1}, s.instr)
 
 	// Prepare resource
 	r := &t.AnnotatedResource{
@@ -841,7 +906,7 @@ func (s *CrawlerTestSuite) TestCrawlDirEntryTimeout() {
 	// Override dir entry timeout
 	s.cfg.DirEntryTimeout = 5 * time.Millisecond
 
-	s.c = New(s.cfg, s.indexes, s.queues, s.protocol, s.extractor, s.instr)
+	s.c = New(s.cfg, s.indexes, s.queues, s.protocol, []extractor.Extractor{s.extractor1}, s.instr)
 
 	entryDelay := 2 * s.cfg.DirEntryTimeout
 

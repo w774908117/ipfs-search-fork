@@ -10,6 +10,21 @@ type Language struct {
 // Metadata represents metadata for a File.
 type Metadata map[string]interface{}
 
+// NSFWClassification represents the classification returned by nsfw-server.
+type NSFWClassification struct {
+	Neutral float64 `json:"neutral"`
+	Drawing float64 `json:"drawing"`
+	Porn    float64 `json:"porn"`
+	Hentai  float64 `json:"hentai"`
+	Sexy    float64 `json:"sexy"`
+}
+
+// NSFW represents nsfw-server classification.
+type NSFW struct {
+	Classification NSFWClassification `json:"classification"`
+	NSFWVersion    string             `json:"nsfwjsVersion"`
+}
+
 // File represents a file resource in an Index.
 type File struct {
 	Document
@@ -19,4 +34,5 @@ type File struct {
 	Language        Language `json:"language"`
 	Metadata        Metadata `json:"metadata"`
 	URLs            []string `json:"urls"`
+	NSFW            NSFW     `json:"nfsw"`
 }

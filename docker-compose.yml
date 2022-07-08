@@ -8,30 +8,6 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch-oss:7.8.1
-    ports:
-      - 9200:9200
-      - 9300:9300
-    environment:
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    deploy:
-      restart_policy:
-        condition: on-failure
-  kibana:
-    image: docker.elastic.co/kibana/kibana-oss:7.8.1
-    depends_on:
-      - elasticsearch
-    ports:
-      - 5601:5601
-    deploy:
-      restart_policy:
-        condition: on-failure
   ipfs:
     image: ipfs/go-ipfs:v0.8.0
     ports:
@@ -54,7 +30,6 @@ services:
     build: .
     depends_on:
       - rabbitmq
-      - elasticsearch
       - ipfs
       - tika-extractor
       - jaeger
@@ -62,7 +37,7 @@ services:
       - TIKA_EXTRACTOR=http://tika-extractor:8081
       - IPFS_API_URL=http://ipfs:5001
       - IPFS_GATEWAY_URL=http://ipfs:8080
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ELASTICSEARCH_URL=http://130.245.145.107:9200
       - AMQP_URL=amqp://guest:guest@rabbitmq:5672/
       - OTEL_EXPORTER_JAEGER_ENDPOINT=http://jaeger:14268/api/traces
       - OTEL_TRACE_SAMPLER_ARG=1.0
@@ -73,10 +48,8 @@ services:
     image: ipfssearch/ipfs-search-api:latest
     ports:
       - 9615:9615
-    depends_on:
-      - elasticsearch
     environment:
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ELASTICSEARCH_URL=http://130.245.145.107:9200
     deploy:
       restart_policy:
         condition: on-failure
@@ -95,10 +68,8 @@ services:
     image: jaegertracing/all-in-one
     environment:
       - SPAN_STORAGE_TYPE=elasticsearch
-      - ES_SERVER_URLS=http://elasticsearch:9200
+      - ES_SERVER_URLS=http://130.245.145.107:9200
       - ES_TAGS_AS_FIELDS_ALL=true
-    depends_on:
-      - elasticsearch
     ports:
       - "14268:14268" # HTTP Collector
       - "16686:16686" # Frontend

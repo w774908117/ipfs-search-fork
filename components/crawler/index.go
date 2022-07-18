@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"reflect"
 	"strings"
 	"time"
 
@@ -81,8 +80,9 @@ func (c *Crawler) index(ctx context.Context, r *t.AnnotatedResource) error {
 		//	fmt.Println(k, "=>", v)
 		//	fmt.Println(reflect.TypeOf(v))
 		//}
-		fmt.Println(reflect.TypeOf(f.Metadata["Content-Type"].([]interface{})[0]))
-		typeString := fmt.Sprintf("%v", f.Metadata["Content-Type"])
+		//fmt.Println(reflect.TypeOf(f.Metadata["Content-Type"].([]interface{})[0]))
+		//typeString := fmt.Sprintf("%v", f.Metadata["Content-Type"])
+		typeString := f.Metadata["Content-Type"].([]interface{})[0].(string)
 		log.Printf("Got Metadata %s", typeString)
 		if strings.Contains(typeString, "text/plain") ||
 			strings.Contains(typeString, "json") ||

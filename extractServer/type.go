@@ -1,4 +1,4 @@
-package extractServer
+package main
 
 type WantedCID struct {
 	Cid      string `json:"cid"`

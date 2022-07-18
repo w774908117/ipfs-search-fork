@@ -75,6 +75,9 @@ func (c *Crawler) index(ctx context.Context, r *t.AnnotatedResource) error {
 
 		index = c.indexes.Files
 		properties = f
+		for k, v := range f.Metadata {
+			fmt.Println(k, "=>", v)
+		}
 
 	case t.DirectoryType:
 		d := &indexTypes.Directory{

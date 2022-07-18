@@ -4,15 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ipfs-search/ipfs-search/components/extractor"
+	"github.com/ipfs-search/ipfs-search/components/protocol"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/codes"
 	"log"
 	"net/http"
 	"net/url"
-	"strings"
-
-	"github.com/ipfs-search/ipfs-search/components/extractor"
-	"github.com/ipfs-search/ipfs-search/components/protocol"
 
 	"github.com/ipfs-search/ipfs-search/instr"
 	t "github.com/ipfs-search/ipfs-search/types"
@@ -89,22 +87,22 @@ func (e *Extractor) Extract(ctx context.Context, r *t.AnnotatedResource, m inter
 		return err
 	}
 
-	log.Printf("Got metadata metadata for '%v'", r)
-	log.Printf("Starting injection '%v'", r)
-	metaRes := &MetaDataRes{}
-	if err := json.NewDecoder(resp.Body).Decode(metaRes); err != nil {
-		log.Printf("Error %s", err)
-		return nil
-	}
-	if len(metaRes.MetaData.MetaType) > 0 {
-		typeString := metaRes.MetaData.MetaType[0]
-		log.Printf("Got Metadata %s", typeString)
-		if strings.Contains(typeString, "text/plain") ||
-			strings.Contains(typeString, "json") ||
-			strings.Contains(typeString, "html") {
-			log.Printf(typeString)
-		}
-	}
+	log.Printf("Got metadata for '%v'", r)
+	//log.Printf("Starting injection '%v'", r)
+	//metaRes := &MetaDataRes{}
+	//if err := json.NewDecoder(resp.Body).Decode(metaRes); err != nil {
+	//	log.Printf("Error %s", err)
+	//	return nil
+	//}
+	//if len(metaRes.MetaData.MetaType) > 0 {
+	//	typeString := metaRes.MetaData.MetaType[0]
+	//	log.Printf("Got Metadata %s", typeString)
+	//	if strings.Contains(typeString, "text/plain") ||
+	//		strings.Contains(typeString, "json") ||
+	//		strings.Contains(typeString, "html") {
+	//		log.Printf(typeString)
+	//	}
+	//}
 
 	return nil
 }

@@ -90,12 +90,15 @@ func (e *Extractor) Extract(ctx context.Context, r *t.AnnotatedResource, m inter
 	}
 
 	log.Printf("Got metadata metadata for '%v'", r)
+	log.Printf("Starting injection '%v'", r)
 	metaRes := &MetaDataRes{}
 	if err := json.NewDecoder(resp.Body).Decode(metaRes); err != nil {
 		log.Printf("Error %s", err)
+		return nil
 	}
 	if len(metaRes.MetaData.MetaType) > 0 {
 		typeString := metaRes.MetaData.MetaType[0]
+		log.Printf("Got Metadata %s", typeString)
 		if strings.Contains(typeString, "text/plain") ||
 			strings.Contains(typeString, "json") ||
 			strings.Contains(typeString, "html") {

@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/codes"
 	"log"
 	"net/http"
 	"net/url"
-
-	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/codes"
+	"strings"
 
 	"github.com/ipfs-search/ipfs-search/components/extractor"
 	"github.com/ipfs-search/ipfs-search/components/protocol"
@@ -25,6 +25,12 @@ type Extractor struct {
 	protocol protocol.Protocol
 
 	*instr.Instrumentation
+}
+type MetaDataRes struct {
+	MetaData *metaData `json:"metadata"`
+}
+type metaData struct {
+	MetaType []string `json:"Content-Type"`
 }
 
 func (e *Extractor) get(ctx context.Context, url string) (resp *http.Response, err error) {
@@ -84,6 +90,18 @@ func (e *Extractor) Extract(ctx context.Context, r *t.AnnotatedResource, m inter
 	}
 
 	log.Printf("Got metadata metadata for '%v'", r)
+	metaRes := &MetaDataRes{}
+	if err := json.NewDecoder(resp.Body).Decode(metaRes); err != nil {
+		log.Printf("Error %s", err)
+	}
+	if len(metaRes.MetaData.MetaType) > 0 {
+		typeString := metaRes.MetaData.MetaType[0]
+		if strings.Contains(typeString, "text/plain") ||
+			strings.Contains(typeString, "json") ||
+			strings.Contains(typeString, "html") {
+			log.Printf(typeString)
+		}
+	}
 
 	return nil
 }

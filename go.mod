@@ -28,6 +28,7 @@ require (
 	gopkg.in/urfave/cli.v1 v1.20.0
 	gopkg.in/yaml.v3 v3.0.1
 	github.com/libp2p/go-buffer-pool v0.0.2
+	github.com/libp2p/go-msgio v0.2.0
 )
 
 replace github.com/stretchr/testify => github.com/ipfs-search/testify v1.8.1-0.20220714120938-9ebebef47942

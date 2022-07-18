@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel/api/trace"
@@ -15,6 +16,8 @@ import (
 	indexTypes "github.com/ipfs-search/ipfs-search/components/index/types"
 	t "github.com/ipfs-search/ipfs-search/types"
 )
+
+type contentType []string
 
 func makeDocument(r *t.AnnotatedResource) indexTypes.Document {
 	now := time.Now().UTC()
@@ -75,10 +78,19 @@ func (c *Crawler) index(ctx context.Context, r *t.AnnotatedResource) error {
 
 		index = c.indexes.Files
 		properties = f
-		for k, v := range f.Metadata {
-			fmt.Println(k, "=>", v)
+		//for k, v := range f.Metadata {
+		//	fmt.Println(k, "=>", v)
+		//}
+		data := f.Metadata["Content-Type"].(contentType)
+		if len(data) > 0 {
+			typeString := data[0]
+			log.Printf("Got Metadata %s", typeString)
+			if strings.Contains(typeString, "text/plain") ||
+				strings.Contains(typeString, "json") ||
+				strings.Contains(typeString, "html") {
+				log.Printf(typeString)
+			}
 		}
-
 	case t.DirectoryType:
 		d := &indexTypes.Directory{
 			Document: makeDocument(r),

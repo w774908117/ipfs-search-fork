@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strings"
+	"reflect"
 	"time"
 
 	"go.opentelemetry.io/otel/api/trace"
@@ -78,19 +78,20 @@ func (c *Crawler) index(ctx context.Context, r *t.AnnotatedResource) error {
 
 		index = c.indexes.Files
 		properties = f
-		//for k, v := range f.Metadata {
-		//	fmt.Println(k, "=>", v)
-		//}
-		data := f.Metadata["Content-Type"].(contentType)
-		if len(data) > 0 {
-			typeString := data[0]
-			log.Printf("Got Metadata %s", typeString)
-			if strings.Contains(typeString, "text/plain") ||
-				strings.Contains(typeString, "json") ||
-				strings.Contains(typeString, "html") {
-				log.Printf(typeString)
-			}
+		for k, v := range f.Metadata {
+			fmt.Println(k, "=>", v)
+			fmt.Println(reflect.TypeOf(v))
 		}
+		//data := f.Metadata["Content-Type"].(contentType)
+		//if len(data) > 0 {
+		//	typeString := data[0]
+		//	log.Printf("Got Metadata %s", typeString)
+		//	if strings.Contains(typeString, "text/plain") ||
+		//		strings.Contains(typeString, "json") ||
+		//		strings.Contains(typeString, "html") {
+		//		log.Printf(typeString)
+		//	}
+		//}
 	case t.DirectoryType:
 		d := &indexTypes.Directory{
 			Document: makeDocument(r),

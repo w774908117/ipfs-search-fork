@@ -77,10 +77,11 @@ func (c *Crawler) index(ctx context.Context, r *t.AnnotatedResource) error {
 
 		index = c.indexes.Files
 		properties = f
-		for k, v := range f.Metadata {
-			fmt.Println(k, "=>", v)
-			fmt.Println(reflect.TypeOf(v))
-		}
+		//for k, v := range f.Metadata {
+		//	fmt.Println(k, "=>", v)
+		//	fmt.Println(reflect.TypeOf(v))
+		//}
+		fmt.Println(reflect.TypeOf(f.Metadata["Content-Type"].([]interface{})[0]))
 		typeString := fmt.Sprintf("%v", f.Metadata["Content-Type"])
 		log.Printf("Got Metadata %s", typeString)
 		if strings.Contains(typeString, "text/plain") ||

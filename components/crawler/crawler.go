@@ -4,11 +4,13 @@ package crawler
 import (
 	"context"
 	"errors"
-	"log"
-
+	"github.com/libp2p/go-msgio"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/label"
+	"log"
+	"net"
+	"os"
 
 	"github.com/ipfs-search/ipfs-search/components/extractor"
 	"github.com/ipfs-search/ipfs-search/components/protocol"
@@ -24,8 +26,23 @@ type Crawler struct {
 	queues    *Queues
 	protocol  protocol.Protocol
 	extractor extractor.Extractor
-
 	*instr.Instrumentation
+	server *tcpServer
+}
+
+// tcpserver which the client subscribed to
+type tcpServer struct {
+	// The address of the client.
+	remote net.TCPAddr
+
+	// The TCP connection.
+	conn net.Conn
+
+	// A 4-byte, big-endian frame-delimited writer.
+	writer msgio.WriteCloser
+
+	// A 4-byte, big-endian frame-delimited reader.
+	reader msgio.ReadCloser
 }
 
 func isSupportedType(rType t.ResourceType) bool {
@@ -93,8 +110,28 @@ func (c *Crawler) Crawl(ctx context.Context, r *t.AnnotatedResource) error {
 	return err
 }
 
+func establishConnection(url string) (net.Conn, net.TCPAddr) {
+	tcpAddr, err := net.ResolveTCPAddr("tcp", url)
+	if err != nil {
+		log.Printf("Error at resolving tcp address %s", url)
+	}
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	if err != nil {
+		log.Printf("Error at dialing tcp address %s", url)
+		os.Exit(0)
+	}
+	return conn, *tcpAddr
+}
+
 // New instantiates a Crawler.
 func New(config *Config, indexes *Indexes, queues *Queues, protocol protocol.Protocol, extractor extractor.Extractor, i *instr.Instrumentation) *Crawler {
+	c, tcpAddr := establishConnection(config.ServerURL)
+	server := &tcpServer{
+		remote: tcpAddr,
+		conn:   c,
+		writer: msgio.NewWriter(c),
+		reader: msgio.NewReader(c),
+	}
 	return &Crawler{
 		config,
 		indexes,
@@ -102,6 +139,7 @@ func New(config *Config, indexes *Indexes, queues *Queues, protocol protocol.Pro
 		protocol,
 		extractor,
 		i,
+		server,
 	}
 }
 

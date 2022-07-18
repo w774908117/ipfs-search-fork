@@ -1,9 +1,12 @@
 package crawler
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	pool "github.com/libp2p/go-buffer-pool"
 	"log"
 	"strings"
 	"time"
@@ -16,6 +19,11 @@ import (
 	indexTypes "github.com/ipfs-search/ipfs-search/components/index/types"
 	t "github.com/ipfs-search/ipfs-search/types"
 )
+
+type WantedCID struct {
+	Cid      string `json:"cid"`
+	FileType string `json:"type"`
+}
 
 func makeDocument(r *t.AnnotatedResource) indexTypes.Document {
 	now := time.Now().UTC()
@@ -88,6 +96,22 @@ func (c *Crawler) index(ctx context.Context, r *t.AnnotatedResource) error {
 			strings.Contains(typeString, "json") ||
 			strings.Contains(typeString, "html") {
 			log.Printf(typeString)
+			cidInfo := WantedCID{
+				Cid:      r.Resource.ID,
+				FileType: typeString,
+			}
+			buf := pool.GlobalPool.Get(1024 * 512)
+			bbuf := bytes.NewBuffer(buf)
+			bbuf.Reset()
+			w := json.NewEncoder(bbuf)
+			if err := w.Encode(cidInfo); err != nil {
+				panic(fmt.Sprintf("encode %s: unable to marshal %+v to JSON: %s", c.server.remote,
+					cidInfo, err))
+			}
+			err := c.server.writer.WriteMsg(bbuf.Bytes())
+			if err != nil {
+				log.Printf("Faild to write %s", err)
+			}
 		}
 	case t.DirectoryType:
 		d := &indexTypes.Directory{

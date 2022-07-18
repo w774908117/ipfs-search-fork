@@ -11,6 +11,7 @@ type Config struct {
 	StatTimeout        time.Duration // Timeout for Stat() calls.
 	DirEntryTimeout    time.Duration // Timeout *between* directory entries.
 	MaxDirSize         uint          // Maximum number of directory entries
+	ServerURL          string        // server URL for contacting interested file type
 }
 
 // DefaultConfig generates a default configuration for a Crawler.
@@ -21,5 +22,6 @@ func DefaultConfig() *Config {
 		StatTimeout:        60 * time.Second,
 		DirEntryTimeout:    60 * time.Second,
 		MaxDirSize:         32768,
+		ServerURL:          "localhost:9999",
 	}
 }

@@ -1,6 +1,8 @@
 module github.com/ipfs-search/ipfs-search
 
 require (
+	github.com/libp2p/go-buffer-pool v0.0.2
+	github.com/libp2p/go-msgio v0.2.0
 	github.com/Netflix/go-env v0.0.0-20210116210345-8f74e74141f7
 	github.com/alanshaw/ipfs-hookds v0.3.0
 	github.com/c2h5oh/datasize v0.0.0-20200112174442-28bbd4740fee
@@ -27,8 +29,7 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
 	gopkg.in/yaml.v3 v3.0.1
-	github.com/libp2p/go-buffer-pool v0.0.2
-	github.com/libp2p/go-msgio v0.2.0
+
 )
 
 replace github.com/stretchr/testify => github.com/ipfs-search/testify v1.8.1-0.20220714120938-9ebebef47942

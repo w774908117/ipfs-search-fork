@@ -26,6 +26,13 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
+  ipfs-inject-server:
+    build: ./extractServer
+    ports:
+      - 9999:9999
+    deploy:
+      restart_policy:
+        condition: on-failure
   ipfs-crawler:
     build: .
     depends_on:
@@ -33,7 +40,7 @@ services:
       - ipfs
       - tika-extractor
       - jaeger
-    network_mode: host
+      - ipfs-inject-server
     environment:
       - TIKA_EXTRACTOR=http://tika-extractor:8081
       - IPFS_API_URL=http://ipfs:5001
@@ -42,6 +49,7 @@ services:
       - AMQP_URL=amqp://guest:guest@rabbitmq:5672/
       - OTEL_EXPORTER_JAEGER_ENDPOINT=http://jaeger:14268/api/traces
       - OTEL_TRACE_SAMPLER_ARG=1.0
+      - SERVER_URL=ipfs-inject-server:9999
     deploy:
       restart_policy:
         condition: on-failure

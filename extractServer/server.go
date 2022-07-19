@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/libp2p/go-msgio"
 	"log"
 	"net"
 	"os"
@@ -13,6 +14,10 @@ const (
 	PORT = "9999"
 	TYPE = "tcp"
 )
+
+type tcpServer struct {
+	writer msgio.Writer
+}
 
 func main() {
 	// get server information from env
@@ -39,15 +44,21 @@ func main() {
 }
 func handleIncomingRequest(c net.Conn) {
 	fmt.Printf("Serving %s\n", c.RemoteAddr().String())
+	reader := msgio.NewReader(c)
 	for {
-		dec := json.NewDecoder(c)
-		cidFile := &WantedCID{}
-		err := dec.Decode(cidFile)
+		msg, err := reader.ReadMsg()
 		if err != nil {
-			fmt.Println(err)
-			break
+			log.Printf("Error at reading msg %s", err)
+			continue
 		}
-		fmt.Println(cidFile.Cid)
+		msgRecvd := &WantedCID{}
+		err = json.Unmarshal(msg, msgRecvd)
+		if err != nil {
+			log.Printf("Failed unmarshal data %s", msg)
+			continue
+		}
+		log.Printf(msgRecvd.Cid)
+
 	}
 	c.Close()
 }

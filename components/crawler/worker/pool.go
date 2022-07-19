@@ -54,6 +54,7 @@ func (w *Pool) makeCrawler(ctx context.Context) error {
 
 	log.Println("Getting indexes.")
 	if indexes, err = w.getIndexes(ctx); err != nil {
+		log.Printf("Error at getting indexes: %s", err)
 		return err
 	}
 

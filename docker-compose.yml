@@ -71,8 +71,8 @@ services:
       - elasticsearch
       - ipfs
       - tika-extractor
-      - ipfs-inject-server
       - jaeger
+      - ipfs-inject-server
     environment:
       - TIKA_EXTRACTOR=http://tika-extractor:8081
       - IPFS_API_URL=http://ipfs:5001

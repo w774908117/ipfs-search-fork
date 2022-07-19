@@ -22,6 +22,6 @@ func DefaultConfig() *Config {
 		StatTimeout:        60 * time.Second,
 		DirEntryTimeout:    60 * time.Second,
 		MaxDirSize:         32768,
-		ServerURL:          "localhost:9999",
+		ServerURL:          "127.0.0.1:9999",
 	}
 }

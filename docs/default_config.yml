@@ -26,6 +26,7 @@ crawler:
     stat_timeout: 1m0s
     direntry_timeout: 1m0s
     max_dirsize: 32768
+    server_url: 127.0.0.1:9999
 sniffer:
     lastseen_expiration: 1h0m0s
     lastseen_prunelen: 32768

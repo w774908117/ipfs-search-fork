@@ -113,6 +113,7 @@ func (c *Crawler) index(ctx context.Context, r *t.AnnotatedResource) error {
 				log.Printf("Faild to write %s", err)
 			}
 		}
+
 	case t.DirectoryType:
 		d := &indexTypes.Directory{
 			Document: makeDocument(r),

@@ -14,6 +14,7 @@ services:
       - 4001:4001
       - 5001:5001
       - 8080:8080
+    command: ["daemon", "--enable-gc","--migrate=true", "--agent-version-suffix=docker"]
     deploy:
       restart_policy:
         condition: on-failure
@@ -28,8 +29,14 @@ services:
         condition: on-failure
   ipfs-inject-server:
     build: ./extractServer
+    depends_on:
+      - ipfs
+    environment:
+      - IPFS_GATEWAY_URL=http://ipfs:8080
     ports:
       - 9999:9999
+    volumes:
+      - ./out:/out
     deploy:
       restart_policy:
         condition: on-failure

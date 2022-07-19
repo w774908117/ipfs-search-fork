@@ -68,11 +68,11 @@ services:
     build: .
     depends_on:
       - rabbitmq
-      - ipfs
       - elasticsearch
+      - ipfs
       - tika-extractor
-      - jaeger
       - ipfs-inject-server
+      - jaeger
     environment:
       - TIKA_EXTRACTOR=http://tika-extractor:8081
       - IPFS_API_URL=http://ipfs:5001
@@ -87,10 +87,10 @@ services:
         condition: on-failure
   ipfs-search-api:
     image: ipfssearch/ipfs-search-api:latest
-    depends_on:
-      - elasticsearch
     ports:
       - 9615:9615
+    depends_on:
+      - elasticsearch
     environment:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
     deploy:

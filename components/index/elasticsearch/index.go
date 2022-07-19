@@ -117,6 +117,7 @@ func (i *Index) Index(ctx context.Context, id string, properties interface{}) er
 	defer span.End()
 
 	if err := i.index(ctx, "create", id, properties); err != nil {
+		log.Printf("Error at elastictic Index %s", err)
 		span.RecordError(ctx, err, trace.WithErrorStatus(codes.Error))
 		return err
 	}

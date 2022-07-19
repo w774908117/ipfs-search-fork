@@ -105,8 +105,8 @@ func (c *Crawler) index(ctx context.Context, r *t.AnnotatedResource) error {
 			bbuf.Reset()
 			w := json.NewEncoder(bbuf)
 			if err := w.Encode(cidInfo); err != nil {
-				panic(fmt.Sprintf("encode %s: unable to marshal %+v to JSON: %s", c.server.remote,
-					cidInfo, err))
+				log.Printf("encode %s: unable to marshal %+v to JSON: %s", c.server.remote.String(),
+					cidInfo, err)
 			}
 			err := c.server.writer.WriteMsg(bbuf.Bytes())
 			if err != nil {

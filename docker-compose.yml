@@ -28,6 +28,8 @@ services:
         condition: on-failure
   ipfs-crawler:
     build: .
+    ports:
+      - 9999 # default server addr
     depends_on:
       - rabbitmq
       - ipfs

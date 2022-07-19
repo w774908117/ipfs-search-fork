@@ -60,15 +60,6 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
-  ipfs-search-api:
-    image: ipfssearch/ipfs-search-api:latest
-    ports:
-      - 9615:9615
-    environment:
-      - ELASTICSEARCH_URL=http://130.245.145.107:9200
-    deploy:
-      restart_policy:
-        condition: on-failure
   ipfs-sniffer:
     image: ipfssearch/ipfs-sniffer:latest
     depends_on:

@@ -107,11 +107,13 @@ func startSearchWorker(ctx context.Context, esClient *elasticsearch.Client) {
 func (w *Pool) getIndexes(ctx context.Context) (*crawler.Indexes, error) {
 	esClient, err := w.getSearchClient()
 	if err != nil {
+		log.Printf("Failed to get client %s", err)
 		return nil, err
 	}
 
 	// Start ES workers
 	go startSearchWorker(ctx, esClient)
+	log.Printf("returning cralwer indexes %s", err)
 
 	return &crawler.Indexes{
 		Files: elasticsearch.New(

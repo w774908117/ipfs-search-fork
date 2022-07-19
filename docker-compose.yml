@@ -28,13 +28,12 @@ services:
         condition: on-failure
   ipfs-crawler:
     build: .
-    ports:
-      - 9999:9999 # default server addr
     depends_on:
       - rabbitmq
       - ipfs
       - tika-extractor
       - jaeger
+    network_mode: host
     environment:
       - TIKA_EXTRACTOR=http://tika-extractor:8081
       - IPFS_API_URL=http://ipfs:5001

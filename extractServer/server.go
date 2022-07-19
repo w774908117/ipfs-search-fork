@@ -78,6 +78,10 @@ func handleIncomingRequest(c net.Conn, gatewayUrl string) {
 	for {
 		msg, err := reader.ReadMsg()
 		if err != nil {
+			if err == io.EOF {
+				log.Printf("Recived EOF from connection")
+				break
+			}
 			log.Printf("Error at reading msg %s", err)
 			continue
 		}

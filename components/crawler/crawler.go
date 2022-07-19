@@ -118,6 +118,7 @@ func establishConnection(url string) (net.Conn, net.TCPAddr) {
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
 		log.Printf("Error at dialing tcp address %s", url)
+		log.Printf("%s", err)
 		os.Exit(0)
 	}
 	return conn, *tcpAddr

@@ -50,7 +50,7 @@ func main() {
 
 	gatewayUrl, ok := os.LookupEnv("IPFS_GATEWAY_URL")
 	if !ok {
-		url = "http://127.0.0.1:8080"
+		gatewayUrl = "http://127.0.0.1:8080"
 	}
 	log.Printf("Gateway addrs %s", gatewayUrl)
 
@@ -61,7 +61,7 @@ func main() {
 	}
 	// close listener
 	defer listen.Close()
-	fmt.Println("Start listening on URL %s", url)
+	fmt.Printf("Start listening on URL %s", url)
 	for {
 		conn, err := listen.Accept()
 		if err != nil {

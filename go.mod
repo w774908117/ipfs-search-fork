@@ -11,9 +11,11 @@ require (
 	github.com/ipfs/go-unixfs v0.2.4
 	github.com/jpillora/backoff v1.0.0
 	github.com/kr/text v0.2.0 // indirect
+	github.com/libp2p/go-buffer-pool v0.0.2 // indirect
 	github.com/libp2p/go-eventbus v0.2.1
 	github.com/libp2p/go-libp2p-core v0.6.1
 	github.com/libp2p/go-libp2p-kad-dht v0.10.0
+	github.com/libp2p/go-msgio v0.0.6 // indirect
 	github.com/multiformats/go-base32 v0.0.3
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/opensearch-project/opensearch-go v1.0.0

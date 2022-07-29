@@ -32,17 +32,28 @@ func downloadFile(cid cid.Cid, saveDir string, gatewayUrl string) {
 	if err != nil {
 		log.Printf("Failed download cid %s", cid)
 	}
-	saveFile := path.Join(saveDir, cid.String())
+	// create file for video and its provider information
+	videoSaveDir := path.Join(saveDir, cid.String())
+	err = os.MkdirAll(videoSaveDir, os.ModePerm)
+	if err != nil {
+		log.Printf("Failed create dir %s", err)
+		return
+	}
+	// now save video
+	saveFile := path.Join(videoSaveDir, cid.String())
 	out, err := os.Create(saveFile)
 	if err != nil {
 		log.Printf("Failed create cid file %s", cid)
+		return
 	}
 
 	// Write the body to file
 	_, err = io.Copy(out, fileData.Body)
 	if err != nil {
 		log.Printf("Failed create cid file %s", cid)
+		return
 	}
+	// TODO start collecting metric about provider
 	out.Close()
 }
 

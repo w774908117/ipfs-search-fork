@@ -1,3 +1,4 @@
+
 version: '3'
 services:
   rabbitmq:
@@ -32,35 +33,33 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
-  ipfs:
-    image: ipfs/go-ipfs:v0.13.1
+  export-server:
+    build: ./extractServer
     ports:
+      - 4322:4322 # http server
+      - 4321:4321 # subscribe tcp server
+      - 8070:8080 # ipfs gateway
+      - 5001:5001 # ipfs http RPC
       - 4001:4001
-      - 5001:5001
-      - 8080:8080
-    command: [ "daemon", "--enable-gc","--migrate=true", "--agent-version-suffix=docker" ]
+      - 29998:29998
+    environment:
+      - IPFS_GATEWAY_URL=http://export-server:8080
     deploy:
       restart_policy:
         condition: on-failure
+    volumes:
+      - ./out/:/out/
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
   tika-extractor:
     image: ipfssearch/tika-extractor:latest
     ports:
       - 8081:8081
     depends_on:
-      - ipfs
-    deploy:
-      restart_policy:
-        condition: on-failure
-  ipfs-inject-server:
-    build: ./extractServer
-    depends_on:
-      - ipfs
-    environment:
-      - IPFS_GATEWAY_URL=http://ipfs:8080
-    ports:
-      - 9999:9999
-    volumes:
-      - ./out:/out
+      - export-server
     deploy:
       restart_policy:
         condition: on-failure
@@ -69,19 +68,18 @@ services:
     depends_on:
       - rabbitmq
       - elasticsearch
-      - ipfs
+      - export-server
       - tika-extractor
       - jaeger
-      - ipfs-inject-server
     environment:
       - TIKA_EXTRACTOR=http://tika-extractor:8081
-      - IPFS_API_URL=http://ipfs:5001
-      - IPFS_GATEWAY_URL=http://ipfs:8080
+      - IPFS_API_URL=http://export-server:5001
+      - IPFS_GATEWAY_URL=http://export-server:8080
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - AMQP_URL=amqp://guest:guest@rabbitmq:5672/
       - OTEL_EXPORTER_JAEGER_ENDPOINT=http://jaeger:14268/api/traces
       - OTEL_TRACE_SAMPLER_ARG=1.0
-      - SERVER_URL=ipfs-inject-server:9999
+      - SERVER_URL=export-server:29998
     deploy:
       restart_policy:
         condition: on-failure
@@ -118,7 +116,7 @@ services:
     ports:
       - "14268:14268" # HTTP Collector
       - "16686:16686" # Frontend
-    command: ["--es.num-shards=1", "--es.num-replicas=0"]
+    command: [ "--es.num-shards=1", "--es.num-replicas=0" ]
     deploy:
       restart_policy:
         condition: on-failure

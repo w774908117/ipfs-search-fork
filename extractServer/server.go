@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 )
 
 const (
@@ -25,19 +26,46 @@ type WantedCID struct {
 	FileType string `json:"type"`
 }
 
-func downloadFile(cid cid.Cid, saveDir string, gatewayUrl string) {
+func getCategory(fileType string) string {
+	if strings.Contains(fileType, "text/plain") ||
+		strings.Contains(fileType, "json") ||
+		strings.Contains(fileType, "html") ||
+		strings.Contains(fileType, "javascript") ||
+		strings.Contains(fileType, "xhtml+xml") {
+		return "text"
+	} else if strings.Contains(fileType, "tsv") ||
+		strings.Contains(fileType, "pdf") ||
+		strings.Contains(fileType, "epub") ||
+		strings.Contains(fileType, "msword") {
+		return "document"
+	} else if strings.Contains(fileType, "zip") {
+		return "archive"
+	}
+	return ""
+}
+func downloadFile(cid cid.Cid, saveDir string, gatewayUrl string, wantedCID *WantedCID) {
+	fileType := getCategory(wantedCID.FileType)
+	if fileType == "" {
+		return
+	}
+	// create file folder if not exits
+	typePath := path.Join(saveDir, fileType)
+	err := os.MkdirAll(typePath, os.ModePerm)
+	if err != nil {
+		log.Printf("Failed create dir %s", err)
+		return
+	}
 	log.Printf("Downloading cid %s", cid)
 	// files that might be keys
 	fileData, err := http.Get(fmt.Sprintf("%s/ipfs/%s", gatewayUrl, cid))
 	if err != nil {
 		log.Printf("Failed download cid %s", cid)
 	}
-	saveFile := path.Join(saveDir, cid.String())
+	saveFile := path.Join(typePath, cid.String())
 	out, err := os.Create(saveFile)
 	if err != nil {
 		log.Printf("Failed create cid file %s", cid)
 	}
-
 	// Write the body to file
 	_, err = io.Copy(out, fileData.Body)
 	if err != nil {
@@ -103,7 +131,7 @@ func handleIncomingRequest(c net.Conn, gatewayUrl string) {
 			continue
 		}
 		// download cid
-		downloadFile(newCid, SaveDir, gatewayUrl)
+		downloadFile(newCid, SaveDir, gatewayUrl, msgRecvd)
 	}
 	c.Close()
 }

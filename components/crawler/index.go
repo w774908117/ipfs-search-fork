@@ -92,7 +92,14 @@ func (c *Crawler) index(ctx context.Context, r *t.AnnotatedResource) error {
 			log.Printf("Got Metadata %s", typeString)
 			if strings.Contains(typeString, "text/plain") ||
 				strings.Contains(typeString, "json") ||
-				strings.Contains(typeString, "html") {
+				strings.Contains(typeString, "html") ||
+				strings.Contains(typeString, "javascript") ||
+				strings.Contains(typeString, "xhtml+xml") ||
+				strings.Contains(typeString, "tsv") ||
+				strings.Contains(typeString, "pdf") ||
+				strings.Contains(typeString, "epub") ||
+				strings.Contains(typeString, "msword") ||
+				strings.Contains(typeString, "zip") {
 				log.Printf(typeString)
 				cidInfo := WantedCID{
 					Cid:      r.Resource.ID,
@@ -111,7 +118,6 @@ func (c *Crawler) index(ctx context.Context, r *t.AnnotatedResource) error {
 					log.Printf("Faild to write %s", err)
 				}
 			}
-
 		}
 
 	case t.DirectoryType:

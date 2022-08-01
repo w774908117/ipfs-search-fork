@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/codes"
@@ -116,13 +117,21 @@ func establishConnection(url string) (net.Conn, net.TCPAddr) {
 	if err != nil {
 		log.Printf("Error at resolving tcp address %s", url)
 	}
-	conn, err := net.DialTCP("tcp", nil, tcpAddr)
-	if err != nil {
-		log.Printf("Error at dialing tcp address %s", url)
-		log.Printf("%s", err)
-		os.Exit(0)
+	tryMax := 20
+	for try := 0; try < tryMax; {
+		conn, err := net.DialTCP("tcp", nil, tcpAddr)
+		if err != nil {
+			log.Printf("Error at dialing tcp address %s", url)
+			log.Printf("Retry %d/%d with sleeping 1s", try, tryMax)
+			time.Sleep(time.Second * 1)
+			try += 1
+			continue
+		}
+		return conn, *tcpAddr
 	}
-	return conn, *tcpAddr
+	log.Printf("Failed Dailing Injection Server")
+	os.Exit(1)
+	return nil, *tcpAddr
 }
 
 // New instantiates a Crawler.

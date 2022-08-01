@@ -90,9 +90,8 @@ func (c *Crawler) index(ctx context.Context, r *t.AnnotatedResource) error {
 			len(f.Metadata["Content-Type"].([]interface{})) > 0 {
 			typeString := f.Metadata["Content-Type"].([]interface{})[0].(string)
 			log.Printf("Got Metadata %s", typeString)
-			if strings.Contains(typeString, "text/plain") ||
-				strings.Contains(typeString, "json") ||
-				strings.Contains(typeString, "html") {
+			// filter only for videos
+			if strings.Contains(typeString, "video") {
 				log.Printf(typeString)
 				cidInfo := WantedCID{
 					Cid:      r.Resource.ID,

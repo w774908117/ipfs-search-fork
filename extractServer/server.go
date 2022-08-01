@@ -8,14 +8,14 @@ import (
 	"io"
 	"log"
 	"net"
-	"net/http"
 	"os"
+	"os/exec"
 	"path"
 )
 
 const (
 	HOST    = "0.0.0.0"
-	PORT    = "9999"
+	PORT    = "29998"
 	TYPE    = "tcp"
 	SaveDir = "/out/"
 )
@@ -25,36 +25,57 @@ type WantedCID struct {
 	FileType string `json:"type"`
 }
 
-func downloadFile(cid cid.Cid, saveDir string, gatewayUrl string) {
-	log.Printf("Downloading cid %s", cid)
-	// files that might be keys
-	fileData, err := http.Get(fmt.Sprintf("%s/ipfs/%s", gatewayUrl, cid))
+func collectMetric(cid cid.Cid, saveDir string) {
+	cmd := exec.Command("python3", "record.py",
+		"-c", cid.String(),
+		"-f", "daemon.txt",
+		"-d", saveDir)
+	log.Printf("Running cmd %s", cmd.String())
+	err := cmd.Run()
 	if err != nil {
-		log.Printf("Failed download cid %s", cid)
+		log.Printf("Failed excute collect metric cid %s err %s", cid, err)
+		out, err := cmd.Output()
+		if err != nil {
+			log.Printf("%s", err)
+		}
+		log.Printf(string(out))
+		return
 	}
+	log.Printf("Collect metric cid %s cid success", cid)
+
+}
+func downloadFile(cid cid.Cid, saveDir string, gatewayUrl string) {
+	log.Printf("Processing  cid %s", cid)
+	// files that might be keys
+	//fileData, err := http.Get(fmt.Sprintf("%s/ipfs/%s", gatewayUrl, cid))
+	//if err != nil {
+	//	log.Printf("Failed download cid %s", cid)
+	//}
 	// create file for video and its provider information
 	videoSaveDir := path.Join(saveDir, cid.String())
-	err = os.MkdirAll(videoSaveDir, os.ModePerm)
+	err := os.MkdirAll(videoSaveDir, os.ModePerm)
 	if err != nil {
 		log.Printf("Failed create dir %s", err)
 		return
 	}
+	// TODO start collecting metric about provider
+	go collectMetric(cid, videoSaveDir)
 	// now save video
-	saveFile := path.Join(videoSaveDir, cid.String())
-	out, err := os.Create(saveFile)
-	if err != nil {
-		log.Printf("Failed create cid file %s", cid)
-		return
-	}
+	//saveFile := path.Join(videoSaveDir, cid.String())
+	//out, err := os.Create(saveFile)
+	//if err != nil {
+	//	log.Printf("Failed create cid file %s", cid)
+	//	return
+	//}
 
 	// Write the body to file
-	_, err = io.Copy(out, fileData.Body)
-	if err != nil {
-		log.Printf("Failed create cid file %s", cid)
-		return
-	}
-	// TODO start collecting metric about provider
-	out.Close()
+	//_, err = io.Copy(out, fileData.Body)
+	//if err != nil {
+	//	log.Printf("Failed create cid file %s", cid)
+	//	return
+	//}
+
+	//out.Close()
 }
 
 func main() {

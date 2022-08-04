@@ -96,8 +96,8 @@ func (c *Crawler) index(ctx context.Context, r *t.AnnotatedResource) error {
 				strings.Contains(typeString, "javascript") ||
 				strings.Contains(typeString, "xhtml+xml") ||
 				strings.Contains(typeString, "tsv") ||
-				strings.Contains(typeString, "pdf") ||
-				strings.Contains(typeString, "epub") ||
+				//strings.Contains(typeString, "pdf") ||
+				//strings.Contains(typeString, "epub") ||
 				strings.Contains(typeString, "msword") ||
 				strings.Contains(typeString, "zip") {
 				log.Printf(typeString)

@@ -5,11 +5,13 @@ import ipaddress
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime
 import json
 from json import JSONEncoder
 import logging
 import traceback
+import pycurl
 
 import icmplib
 import requests
@@ -369,6 +371,23 @@ def analyse_latency(cid):
     return resolve_time, download_time
 
 
+def analyse_latency_gateway(cid):
+    """
+    Parse the resolve_time and download_time info from cid_latency.txt
+    :param cid: cid of the object
+    :return: time to resolve the source of the content and time to download the content
+    """
+    resolve_time = 0
+    download_time = 0
+    with open(os.path.join(SAVE_DIR, f'{cid}_latency.txt'), 'r') as stdin:
+        data = json.load(stdin)
+    if "starttransfer_time" in data.keys():
+        resolve_time = data["starttransfer_time"]
+        if "total_time" in data.keys():
+            download_time = str(float(data["total_time"]) - float(resolve_time))
+    return resolve_time, download_time
+
+
 def analyse_content_provider(all_block_provider_dic, cid):
     """
     Parse the content provider for a particular content (cid)
@@ -610,6 +629,92 @@ def get_latency_info(cid):
             logging.info(f'CID {cid} download timeout')
 
 
+def get_latency_info_gateway(cid):
+    """
+    Get resolve and download time via ipfs getway
+    :param cid: cid to find
+    :return: None
+    """
+    # remove possible cache
+    os.system(f"ipfs block rm $(ipfs ls --size=false {cid})")
+    time.sleep(5)
+
+    with open(os.path.join(SAVE_DIR, f'{cid}'), 'wb') as vid_out:
+        try:
+            url = f"http://127.0.0.1:8080/ipfs/{cid}"
+            #    url = "http://gateway.ipfs.io/ipfs/" + cid
+            logging.info("Accessing URL %s", url)
+            c = pycurl.Curl()
+            c.setopt(c.URL, url)
+            c.setopt(c.VERBOSE, False)
+            c.setopt(c.WRITEDATA, vid_out)
+            c.setopt(c.FOLLOWLOCATION, 1)
+            c.perform()
+
+            """
+            curl_easy_perform()
+            |
+            |--NAMELOOKUP
+            |--|--CONNECT
+            |--|--|--APPCONNECT
+            |--|--|--|--PRETRANSFER
+            |--|--|--|--|--STARTTRANSFER
+            |--|--|--|--|--|--TOTAL
+            |--|--|--|--|--|--REDIRECT
+            """
+            m = {"total_time": c.getinfo(pycurl.TOTAL_TIME), "namelookup_time": c.getinfo(pycurl.NAMELOOKUP_TIME),
+                 "connect_time": c.getinfo(pycurl.CONNECT_TIME), "pretransfer_time": c.getinfo(pycurl.PRETRANSFER_TIME),
+                 "redirect_time": c.getinfo(pycurl.REDIRECT_TIME),
+                 "starttransfer_time": c.getinfo(pycurl.STARTTRANSFER_TIME),
+                 "length": c.getinfo(pycurl.CONTENT_LENGTH_DOWNLOAD)}
+            # in bytes
+
+            logging.info(f"Got metric for CID {cid}, {m}")
+            with open(os.path.join(SAVE_DIR, f'{cid}_latency.txt'), 'w') as stdout:
+                json.dump(m, stdout)
+        except Exception as e:
+            logging.info(e)
+            with open(os.path.join(SAVE_DIR, f'{cid}_latency.txt'), 'w') as stdout:
+                pass
+
+        # get cached performance
+        try:
+            url = f"http://127.0.0.1:8080/ipfs/{cid}"
+            #    url = "http://gateway.ipfs.io/ipfs/" + cid
+            logging.info("Accessing URL %s", url)
+            c = pycurl.Curl()
+            c.setopt(c.URL, url)
+            c.setopt(c.VERBOSE, False)
+            c.setopt(c.WRITEDATA, vid_out)
+            c.setopt(c.FOLLOWLOCATION, 1)
+            c.perform()
+
+            """
+            curl_easy_perform()
+            |
+            |--NAMELOOKUP
+            |--|--CONNECT
+            |--|--|--APPCONNECT
+            |--|--|--|--PRETRANSFER
+            |--|--|--|--|--STARTTRANSFER
+            |--|--|--|--|--|--TOTAL
+            |--|--|--|--|--|--REDIRECT
+            """
+            m = {"total_time": c.getinfo(pycurl.TOTAL_TIME), "namelookup_time": c.getinfo(pycurl.NAMELOOKUP_TIME),
+                 "connect_time": c.getinfo(pycurl.CONNECT_TIME), "pretransfer_time": c.getinfo(pycurl.PRETRANSFER_TIME),
+                 "redirect_time": c.getinfo(pycurl.REDIRECT_TIME),
+                 "starttransfer_time": c.getinfo(pycurl.STARTTRANSFER_TIME),
+                 "length": c.getinfo(pycurl.CONTENT_LENGTH_DOWNLOAD)}
+            # in bytes
+            logging.info(f"Got metric for CID {cid}, {m}")
+            with open(os.path.join(SAVE_DIR, f'{cid}_latency_cached.txt'), 'w') as stdout:
+                json.dump(m, stdout)
+        except Exception as e:
+            logging.info(e)
+            with open(os.path.join(SAVE_DIR, f'{cid}_latency_cached.txt'), 'w') as stdout:
+                pass
+
+
 def preprocess_file(cid):
     """
     preprocess cid files,i.e. get the file, providers, etc
@@ -618,7 +723,7 @@ def preprocess_file(cid):
     """
     logging.info(f'Loading CID {cid}')
     ips_find_provider(cid)
-    get_latency_info(cid)
+    get_latency_info_gateway(cid)
     get_storage_info(cid)
 
 
@@ -635,7 +740,7 @@ def postprocess_file(cid, all_provider_dic, all_block_provider_dic):
     logging.info(f'CID {cid} ipfs hop {ipfs_hop}')
     num_blocks, content_size = analyse_storage(cid)
     logging.info(f'CID {cid} #blocks {num_blocks}, size {content_size}')
-    resolve_time, download_time = analyse_latency(cid)
+    resolve_time, download_time = analyse_latency_gateway(cid)
     logging.info(f'CID {cid} #r_time {resolve_time}, d_time {download_time}')
     if num_blocks != -1 and content_size != 0 and ipfs_hop != -1:
         actual_provider = analyse_content_provider(all_block_provider_dic, cid)
@@ -702,7 +807,6 @@ def clear_ipfs_repo():
 
 
 def main(cid, dir_name, daemon_file):
-
     # repo gc
     # clear_ipfs_repo()
     # start preprocess with multi threading
@@ -766,7 +870,6 @@ def main(cid, dir_name, daemon_file):
 
 
 if __name__ == '__main__':
-
     # setup parser
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file', type=str, help="daemon file log name", required=True)

@@ -29,7 +29,7 @@ FROM ubuntu:22.04
 WORKDIR /server/
 # Install base utilities
 RUN apt update && \
-    apt-get install -y wget iputils-ping iperf traceroute git psmisc sudo python3 python3-pip musl-dev && \
+    apt-get install -y wget iputils-ping iperf traceroute git psmisc sudo python3 python3-pip musl-dev build-essential libssl-dev libcurl4-openssl-dev && \
     apt-get clean
 # Install anaconda
 #ENV CONDA_DIR /opt/conda
@@ -37,7 +37,7 @@ RUN apt update && \
 #    bash ~/anaconda.sh -b -p /opt/conda
 ## Put conda in path so we can use conda activate
 #ENV PATH=$CONDA_DIR/bin:$PATH
-RUN pip3 install --no-cache-dir icmplib lockfile requests
+RUN pip3 install --no-cache-dir icmplib lockfile requests pycurl
 
 #COPY --from=build /go/bin/extractServer /usr/local/bin/extractServer
 COPY --from=build /go/bin/extractServer /server/extractServer

@@ -636,9 +636,26 @@ def get_latency_info_gateway(cid):
     :return: None
     """
     # remove possible cache
-    os.system(f"ipfs block rm $(ipfs ls --size=false {cid})")
-    time.sleep(5)
-
+    # os.system(f"ipfs block rm $(ipfs ls --size=false {cid})")
+    # time.sleep(5)
+    logging.info(f"Staring gc {cid}")
+    cmd = f"./ipfs block rm $(./ipfs ls --size=false {cid})"
+    process = subprocess.Popen(cmd,
+                               shell=True,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+    logging.info(process.args)
+    for line in process.stdout.readlines():
+        logging.info(f'Repo GCed {line.decode("utf-8")}')
+    for line in process.stderr.readlines():
+        logging.info(f'Error {line.decode("utf-8")}')
+    try:
+        rcode = process.wait(timeout=300)
+        if rcode != 0:
+            logging.info(f'Error exit code {rcode}')
+    except subprocess.TimeoutExpired:
+        logging.info(f'Repo GC {cid} Timeout')
+        process.kill()
     with open(os.path.join(SAVE_DIR, f'{cid}'), 'wb') as vid_out:
         try:
             url = f"http://127.0.0.1:8080/ipfs/{cid}"

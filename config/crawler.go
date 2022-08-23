@@ -13,6 +13,7 @@ type Crawler struct {
 	DirEntryTimeout    time.Duration `yaml:"direntry_timeout"`            // Timeout *between* directory entries.
 	MaxDirSize         uint          `yaml:"max_dirsize"`                 // Maximum number of directory entries
 	ServerURL          string        `yaml:"server_url" env:"SERVER_URL"` //server URL for contacting interested file type
+	VideoServerURL     string        `yaml:"video_server_url" env:"VIDEO_SERVER_URL"`
 }
 
 // CrawlerConfig returns component-specific configuration from the canonical central configuration.

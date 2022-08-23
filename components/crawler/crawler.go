@@ -30,7 +30,8 @@ type Crawler struct {
 	extractor extractor.Extractor
 
 	*instr.Instrumentation
-	server *tcpServer
+	server      *tcpServer
+	videoServer *tcpServer
 }
 
 // tcpserver which the client subscribed to
@@ -143,6 +144,14 @@ func New(config *Config, indexes *Indexes, queues *Queues, protocol protocol.Pro
 		writer: msgio.NewWriter(c),
 		reader: msgio.NewReader(c),
 	}
+	// video server
+	videoC, videoTcpAddr := establishConnection(config.VideoServerURL)
+	videoServer := &tcpServer{
+		remote: videoTcpAddr,
+		conn:   videoC,
+		writer: msgio.NewWriter(videoC),
+		reader: msgio.NewReader(videoC),
+	}
 	return &Crawler{
 		config,
 		indexes,
@@ -151,6 +160,7 @@ func New(config *Config, indexes *Indexes, queues *Queues, protocol protocol.Pro
 		extractor,
 		i,
 		server,
+		videoServer,
 	}
 }
 

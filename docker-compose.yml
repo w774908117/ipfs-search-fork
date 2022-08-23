@@ -82,6 +82,7 @@ services:
       - OTEL_EXPORTER_JAEGER_ENDPOINT=http://jaeger:14268/api/traces
       - OTEL_TRACE_SAMPLER_ARG=1.0
       - SERVER_URL=ipfs-inject-server:9999
+      - VIDEO_SERVER_URL=130.245.145.150:29998
     deploy:
       restart_policy:
         condition: on-failure

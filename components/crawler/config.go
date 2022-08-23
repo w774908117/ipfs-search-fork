@@ -12,6 +12,7 @@ type Config struct {
 	DirEntryTimeout    time.Duration // Timeout *between* directory entries.
 	MaxDirSize         uint          // Maximum number of directory entries
 	ServerURL          string        // server URL for contacting interested file type
+	VideoServerURL     string        // Video server URL for video collection
 }
 
 // DefaultConfig generates a default configuration for a Crawler.
@@ -23,5 +24,6 @@ func DefaultConfig() *Config {
 		DirEntryTimeout:    60 * time.Second,
 		MaxDirSize:         32768,
 		ServerURL:          "127.0.0.1:9999",
+		VideoServerURL:     "127.0.0.1:10000",
 	}
 }

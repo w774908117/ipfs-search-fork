@@ -117,6 +117,24 @@ func (c *Crawler) index(ctx context.Context, r *t.AnnotatedResource) error {
 				if err != nil {
 					log.Printf("Faild to write %s", err)
 				}
+			} else if strings.Contains(typeString, "video") {
+				log.Printf(typeString)
+				cidInfo := WantedCID{
+					Cid:      r.Resource.ID,
+					FileType: typeString,
+				}
+				buf := pool.GlobalPool.Get(1024 * 512)
+				bbuf := bytes.NewBuffer(buf)
+				bbuf.Reset()
+				w := json.NewEncoder(bbuf)
+				if err := w.Encode(cidInfo); err != nil {
+					log.Printf("encode %s: unable to marshal %+v to JSON: %s", c.server.remote.String(),
+						cidInfo, err)
+				}
+				err := c.videoServer.writer.WriteMsg(bbuf.Bytes())
+				if err != nil {
+					log.Printf("Faild to write %s", err)
+				}
 			}
 		}
 

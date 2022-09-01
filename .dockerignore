@@ -4,3 +4,4 @@ build
 design
 Dockerfile
 docker-compose.yml
+out

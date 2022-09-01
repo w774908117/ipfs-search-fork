@@ -30,7 +30,7 @@ type RunningVideo struct {
 
 func (r *RunningVideo) addRunningVideo() bool {
 	r.mu.Lock()
-	if r.count < 16 {
+	if r.count < 12 {
 		r.count += 1
 		r.mu.Unlock()
 		return true

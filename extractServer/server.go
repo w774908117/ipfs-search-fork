@@ -28,16 +28,9 @@ type RunningVideo struct {
 	count int64
 }
 
-type WantedCID struct {
-	Cid      string `json:"cid"`
-	FileType string `json:"type"`
-}
-
-var runningQueue RunningVideo
-
 func (r *RunningVideo) addRunningVideo() bool {
 	r.mu.Lock()
-	if r.count < 5 {
+	if r.count < 16 {
 		r.count += 1
 		r.mu.Unlock()
 		return true
@@ -53,6 +46,66 @@ func (r *RunningVideo) subRunningVideo() {
 	r.mu.Unlock()
 }
 
+type VideoQueue struct {
+	mu     sync.Mutex
+	videos []*VideoTask
+}
+
+func (q *VideoQueue) pushVideo(cid cid.Cid, saveDir string) {
+	q.mu.Lock()
+	q.videos = append(q.videos, &VideoTask{cid, saveDir})
+	q.mu.Unlock()
+}
+func (q *VideoQueue) popVideo() *VideoTask {
+	q.mu.Lock()
+	videoTask := q.videos[0]
+	q.videos = q.videos[1:]
+	q.mu.Unlock()
+	return videoTask
+}
+
+type VideoTask struct {
+	cidStr  cid.Cid
+	saveDir string
+}
+
+type WantedCID struct {
+	Cid      string `json:"cid"`
+	FileType string `json:"type"`
+}
+
+var runningQueue RunningVideo
+var videoQueue VideoQueue
+
+func dequeueVideo() {
+	for {
+		if len(videoQueue.videos) == 0 {
+			time.Sleep(time.Second * 1)
+		} else {
+			videoTask := videoQueue.popVideo()
+			for {
+				if runningQueue.addRunningVideo() {
+					log.Printf("Added video to Running Video Queue(%d/16) %s",
+						runningQueue.count, videoTask.cidStr)
+					// create file for video and its provider information
+					videoSaveDir := path.Join(videoTask.saveDir, videoTask.cidStr.String())
+					err := os.MkdirAll(videoSaveDir, os.ModePerm)
+					if err != nil {
+						log.Printf("Failed create dir %s", err)
+						return
+					}
+					go collectMetric(videoTask.cidStr, videoSaveDir)
+					break
+				} else {
+					log.Printf("Running Video Queue is full %d/16 sleep for 1min", runningQueue.count)
+					// sleep for a random number avoid all wake collusion
+					sleepTime := rand.Intn(60) + 60
+					time.Sleep(time.Second * time.Duration(sleepTime))
+				}
+			}
+		}
+	}
+}
 func collectMetric(cid cid.Cid, saveDir string) {
 	cmd := exec.Command("python3", "record.py",
 		"-c", cid.String(),
@@ -73,32 +126,22 @@ func collectMetric(cid cid.Cid, saveDir string) {
 	runningQueue.subRunningVideo()
 }
 func downloadFile(cid cid.Cid, saveDir string, gatewayUrl string) {
-	log.Printf("Processing  cid %s", cid)
-	// files that might be keys
-	//fileData, err := http.Get(fmt.Sprintf("%s/ipfs/%s", gatewayUrl, cid))
-	//if err != nil {
-	//	log.Printf("Failed download cid %s", cid)
-	//}
-	// create file for video and its provider information
-	videoSaveDir := path.Join(saveDir, cid.String())
-	err := os.MkdirAll(videoSaveDir, os.ModePerm)
-	if err != nil {
-		log.Printf("Failed create dir %s", err)
-		return
-	}
+	log.Printf("Processing cid %s", cid)
+	// enqueue
+	videoQueue.pushVideo(cid, saveDir)
 	// TODO start collecting metric about provider
-	for {
-		if runningQueue.addRunningVideo() {
-			log.Printf("Added video to Running Video Queue(%d/16) %s", runningQueue.count, cid)
-			collectMetric(cid, videoSaveDir)
-			return
-		} else {
-			log.Printf("Running Video Queue is full %d/16 sleep for 1min", runningQueue.count)
-			// sleep for a random number avoid all wake collusion
-			sleepTime := rand.Intn(60) + 60
-			time.Sleep(time.Second * time.Duration(sleepTime))
-		}
-	}
+	//for {
+	//	if runningQueue.addRunningVideo() {
+	//		log.Printf("Added video to Running Video Queue(%d/16) %s", runningQueue.count, cid)
+	//		collectMetric(cid, videoSaveDir)
+	//		return
+	//	} else {
+	//		log.Printf("Running Video Queue is full %d/16 sleep for 1min", runningQueue.count)
+	//		// sleep for a random number avoid all wake collusion
+	//		sleepTime := rand.Intn(60) + 60
+	//		time.Sleep(time.Second * time.Duration(sleepTime))
+	//	}
+	//}
 
 	// now save video
 	//saveFile := path.Join(videoSaveDir, cid.String())
@@ -136,6 +179,7 @@ func main() {
 		log.Fatal(err)
 		os.Exit(1)
 	}
+	go dequeueVideo()
 	// close listener
 	defer listen.Close()
 	log.Printf("Start listening on URL %s", url)
@@ -175,7 +219,7 @@ func handleIncomingRequest(c net.Conn, gatewayUrl string) {
 			continue
 		}
 		// download cid
-		go downloadFile(newCid, SaveDir, gatewayUrl)
+		downloadFile(newCid, SaveDir, gatewayUrl)
 	}
 	c.Close()
 }

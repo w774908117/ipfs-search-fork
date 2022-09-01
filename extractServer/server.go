@@ -7,6 +7,7 @@ import (
 	"github.com/libp2p/go-msgio"
 	"io"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"os/exec"
@@ -93,7 +94,9 @@ func downloadFile(cid cid.Cid, saveDir string, gatewayUrl string) {
 			return
 		} else {
 			log.Printf("Running Video Queue is full %d/16 sleep for 1min", runningQueue.count)
-			time.Sleep(time.Minute * 1)
+			// sleep for a random number avoid all wake collusion
+			sleepTime := rand.Intn(60) + 60
+			time.Sleep(time.Second * time.Duration(sleepTime))
 		}
 	}
 

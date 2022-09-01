@@ -11,6 +11,8 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"sync"
+	"time"
 )
 
 const (
@@ -20,9 +22,34 @@ const (
 	SaveDir = "/out/"
 )
 
+type RunningVideo struct {
+	mu    sync.Mutex
+	count int64
+}
+
 type WantedCID struct {
 	Cid      string `json:"cid"`
 	FileType string `json:"type"`
+}
+
+var runningQueue RunningVideo
+
+func (r *RunningVideo) addRunningVideo() bool {
+	r.mu.Lock()
+	if r.count < 5 {
+		r.count += 1
+		r.mu.Unlock()
+		return true
+	} else {
+		r.mu.Unlock()
+		return false
+	}
+
+}
+func (r *RunningVideo) subRunningVideo() {
+	r.mu.Lock()
+	r.count -= 1
+	r.mu.Unlock()
 }
 
 func collectMetric(cid cid.Cid, saveDir string) {
@@ -42,7 +69,7 @@ func collectMetric(cid cid.Cid, saveDir string) {
 		return
 	}
 	log.Printf("Collect metric cid %s cid success", cid)
-
+	runningQueue.subRunningVideo()
 }
 func downloadFile(cid cid.Cid, saveDir string, gatewayUrl string) {
 	log.Printf("Processing  cid %s", cid)
@@ -59,7 +86,17 @@ func downloadFile(cid cid.Cid, saveDir string, gatewayUrl string) {
 		return
 	}
 	// TODO start collecting metric about provider
-	go collectMetric(cid, videoSaveDir)
+	for {
+		if runningQueue.addRunningVideo() {
+			log.Printf("Added video to Running Video Queue(%d/16) %s", runningQueue.count, cid)
+			collectMetric(cid, videoSaveDir)
+			return
+		} else {
+			log.Printf("Running Video Queue is full %d/16 sleep for 1min", runningQueue.count)
+			time.Sleep(time.Minute * 1)
+		}
+	}
+
 	// now save video
 	//saveFile := path.Join(videoSaveDir, cid.String())
 	//out, err := os.Create(saveFile)
@@ -135,7 +172,7 @@ func handleIncomingRequest(c net.Conn, gatewayUrl string) {
 			continue
 		}
 		// download cid
-		downloadFile(newCid, SaveDir, gatewayUrl)
+		go downloadFile(newCid, SaveDir, gatewayUrl)
 	}
 	c.Close()
 }

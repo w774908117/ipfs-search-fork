@@ -834,7 +834,7 @@ def main(cid, dir_name, daemon_file):
     all_provider_dic = {}  # {cid : result_host_dic={}}
     all_block_provider_dic = {}  # {block_cid, provider_ID}
     target_block_found = False
-    shutil.copyfile(daemon_file, SAVE_DIR)
+    shutil.copyfile(daemon_file, os.path.join(SAVE_DIR, "daemon.txt"))
     with open(os.path.join(SAVE_DIR, "daemon.txt"), 'r') as stdin:
         for line in stdin:
             # read block provider information

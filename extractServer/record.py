@@ -3,6 +3,7 @@ import concurrent.futures
 import copy
 import ipaddress
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -833,8 +834,8 @@ def main(cid, dir_name, daemon_file):
     all_provider_dic = {}  # {cid : result_host_dic={}}
     all_block_provider_dic = {}  # {block_cid, provider_ID}
     target_block_found = False
-
-    with open(f'{daemon_file}', 'r') as stdin:
+    shutil.copyfile(daemon_file, SAVE_DIR)
+    with open(os.path.join(SAVE_DIR, "daemon.txt"), 'r') as stdin:
         for line in stdin:
             # read block provider information
             if "bitswap.go" in line and "Block" in line and "from" in line:

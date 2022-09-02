@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/ipfs/go-cid"
@@ -107,23 +108,42 @@ func dequeueVideo() {
 	}
 }
 func collectMetric(cid cid.Cid, saveDir string) {
-	cmd := exec.Command("python3", "record.py",
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	defer cancel()
+	if ctx.Err() == context.DeadlineExceeded {
+		// Command was killed
+		runningQueue.subRunningVideo()
+		log.Printf("Collect metric cid %s timeout", cid)
+	}
+	if err := exec.CommandContext(ctx, "python3", "record.py",
 		"-c", cid.String(),
 		"-f", "daemon.txt",
-		"-d", saveDir)
-	log.Printf("Running cmd %s", cmd.String())
-	err := cmd.Run()
-	if err != nil {
+		"-d", saveDir).Run(); err != nil {
 		log.Printf("Failed excute collect metric cid %s err %s", cid, err)
-		out, err := cmd.Output()
 		if err != nil {
 			log.Printf("%s", err)
 		}
-		log.Printf(string(out))
+		runningQueue.subRunningVideo()
 		return
 	}
 	log.Printf("Collect metric cid %s cid success", cid)
 	runningQueue.subRunningVideo()
+	//cmd := exec.Command("python3", "record.py",
+	//	"-c", cid.String(),
+	//	"-f", "daemon.txt",
+	//	"-d", saveDir)
+	//log.Printf("Running cmd %s", cmd.String())
+	//err := cmd.Run()
+	//if err != nil {
+	//	log.Printf("Failed excute collect metric cid %s err %s", cid, err)
+	//	out, err := cmd.Output()
+	//	if err != nil {
+	//		log.Printf("%s", err)
+	//	}
+	//	log.Printf(string(out))
+	//	return
+	//}
+
 }
 func downloadFile(cid cid.Cid, saveDir string, gatewayUrl string) {
 	log.Printf("Processing cid %s", cid)

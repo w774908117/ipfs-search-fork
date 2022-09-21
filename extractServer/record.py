@@ -2,8 +2,10 @@ import argparse
 import concurrent.futures
 import copy
 import ipaddress
+import multiprocessing
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -464,6 +466,7 @@ def get_ip_hop(address: Address):
         address.ip_hop = line.split(" ")[0]
     except subprocess.TimeoutExpired as e:
         logging.info(f'Traceroute timeout {address.ip}')
+        process.kill()
     except Exception as e:
         logging.error(f'Traceroute Error {e}')
 
@@ -643,20 +646,53 @@ def get_latency_info_gateway(cid):
     cmd = f"./ipfs block rm $(./ipfs ls --size=false {cid})"
     process = subprocess.Popen(cmd,
                                shell=True,
+                               preexec_fn=os.setsid,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
     logging.info(process.args)
-    for line in process.stdout.readlines():
-        logging.info(f'Repo GCed {line.decode("utf-8")}')
-    for line in process.stderr.readlines():
-        logging.info(f'Error {line.decode("utf-8")}')
+    # for line in process.stdout.readlines():
+    #     logging.info(f'Repo GCed {line.decode("utf-8")}')
+    # for line in process.stderr.readlines():
+    #     logging.info(f'Error {line.decode("utf-8")}')
     try:
-        rcode = process.wait(timeout=300)
-        if rcode != 0:
-            logging.info(f'Error exit code {rcode}')
+        outs, errs = process.communicate(timeout=90)
+        logging.info(f'Done {outs.decode("utf-8")})')
+        logging.info(f'Error {errs.decode("utf-8")}')
+        # if rcode != 0:
+        #     logging.info(f'Error exit code {rcode}')
     except subprocess.TimeoutExpired:
         logging.info(f'Repo GC {cid} Timeout')
-        process.kill()
+        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+        # process.kill()
+        # outs, errs = process.communicate()
+    try:
+        file_size = 0
+        t = multiprocessing.Process(target=get_video, args=(cid,))
+        t.start()
+        prv_time = time.time()
+        while t.is_alive():
+            time.sleep(5)
+            current_size = os.path.getsize(os.path.join(SAVE_DIR, cid))
+            logging.info(f"Current_size {current_size}")
+            current_time = time.time()
+            if current_size != file_size:
+                file_size = current_size
+                prv_time = current_time
+            elif (current_time - prv_time) > 300:
+                # case we have no progress over 5 min we consider dead
+                logging.info(f"Collect Video Timeout {cid}")
+                t.terminate()
+                t.join()
+                exit(-1)
+            else:
+                # check every minute
+                time.sleep(60)
+        t.terminate()
+        t.join()
+    except Exception as e:
+        logging.info(f"Join error {e}")
+
+def get_video(cid):
     with open(os.path.join(SAVE_DIR, f'{cid}'), 'wb') as vid_out:
         try:
             url = f"http://127.0.0.1:8080/ipfs/{cid}"
@@ -667,6 +703,7 @@ def get_latency_info_gateway(cid):
             c.setopt(c.VERBOSE, False)
             c.setopt(c.WRITEDATA, vid_out)
             c.setopt(c.FOLLOWLOCATION, 1)
+            c.setopt(c.CONNECTTIMEOUT, 300)
             c.perform()
 
             """
@@ -705,6 +742,7 @@ def get_latency_info_gateway(cid):
             c.setopt(c.VERBOSE, False)
             c.setopt(c.WRITEDATA, vid_out)
             c.setopt(c.FOLLOWLOCATION, 1)
+            c.setopt(c.CONNECTTIMEOUT, 300)
             c.perform()
 
             """
@@ -731,8 +769,6 @@ def get_latency_info_gateway(cid):
             logging.info(e)
             with open(os.path.join(SAVE_DIR, f'{cid}_latency_cached.txt'), 'w') as stdout:
                 pass
-
-
 def preprocess_file(cid):
     """
     preprocess cid files,i.e. get the file, providers, etc
@@ -740,6 +776,8 @@ def preprocess_file(cid):
     :return:
     """
     logging.info(f'Loading CID {cid}')
+    if os.path.exists(os.path.join(SAVE_DIR, f'{cid}_summary.json')):
+        exit(0)
     ips_find_provider(cid)
     get_latency_info_gateway(cid)
     get_storage_info(cid)
@@ -834,8 +872,8 @@ def main(cid, dir_name, daemon_file):
     all_provider_dic = {}  # {cid : result_host_dic={}}
     all_block_provider_dic = {}  # {block_cid, provider_ID}
     target_block_found = False
-    shutil.copyfile(daemon_file, os.path.join(SAVE_DIR, "daemon.txt"))
-    with open(os.path.join(SAVE_DIR, "daemon.txt"), 'r') as stdin:
+    # shutil.copyfile(daemon_file, os.path.join(SAVE_DIR, "daemon.txt"))
+    with open(daemon_file, 'r') as stdin:
         for line in stdin:
             # read block provider information
             if "bitswap.go" in line and "Block" in line and "from" in line:

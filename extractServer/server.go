@@ -31,7 +31,7 @@ type RunningVideo struct {
 
 func (r *RunningVideo) addRunningVideo() bool {
 	r.mu.Lock()
-	if r.count < 8 {
+	if r.count < 12 {
 		r.count += 1
 		r.mu.Unlock()
 		return true
@@ -108,14 +108,14 @@ func dequeueVideo() {
 	}
 }
 func collectMetric(cid cid.Cid, saveDir string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Minute)
 	defer cancel()
 	if ctx.Err() == context.DeadlineExceeded {
 		// Command was killed
 		runningQueue.subRunningVideo()
 		log.Printf("Collect metric cid %s timeout", cid)
 	}
-	if err := exec.CommandContext(ctx, "python3", "record.py",
+	if err := exec.CommandContext(ctx, "python3", "-u", "record.py",
 		"-c", cid.String(),
 		"-f", "daemon.txt",
 		"-d", saveDir).Run(); err != nil {
